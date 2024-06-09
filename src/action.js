@@ -11,6 +11,7 @@ const {
   MERGE_STATUS_KEY,
   getInputs,
   parseCommaOrSemicolonSeparatedValue,
+  getTarget,
 } = require('./util')
 const { verifyCommits } = require('./verifyCommitSignatures')
 const { dependabotAuthor } = require('./getDependabotDetails')
@@ -35,6 +36,8 @@ module.exports = async function run({
     APPROVE_ONLY,
     USE_GITHUB_AUTO_MERGE,
     TARGET,
+    TARGET_DEV,
+    TARGET_PROD,
     PR_NUMBER,
     SKIP_COMMIT_VERIFICATION,
     SKIP_VERIFICATION,
@@ -44,7 +47,6 @@ module.exports = async function run({
     toolkit.logActionRefWarning()
 
     const { pull_request } = context.payload
-
     if (!pull_request && !PR_NUMBER) {
       core.setOutput(MERGE_STATUS_KEY, MERGE_STATUS.skippedNotADependabotPr)
       return logError(
@@ -84,8 +86,13 @@ module.exports = async function run({
       }
     }
 
+    const target = getTarget(
+      { TARGET, TARGET_DEV, TARGET_PROD },
+      dependabotMetadata,
+    )
+
     if (
-      TARGET !== updateTypes.any &&
+      target !== updateTypes.any &&
       updateTypesPriority.indexOf(updateType) < 0
     ) {
       core.setOutput(MERGE_STATUS_KEY, MERGE_STATUS.skippedInvalidVersion)
@@ -94,13 +101,13 @@ module.exports = async function run({
     }
 
     if (
-      TARGET !== updateTypes.any &&
+      target !== updateTypes.any &&
       updateTypesPriority.indexOf(updateType) >
-        updateTypesPriority.indexOf(TARGET)
+        updateTypesPriority.indexOf(target)
     ) {
       core.setOutput(MERGE_STATUS_KEY, MERGE_STATUS.skippedBumpHigherThanTarget)
       logWarning(`Semver bump is higher than allowed in TARGET.
-Tried to do a '${updateType}' update but the max allowed is '${TARGET}'`)
+Tried to do a '${updateType}' update but the max allowed is '${target}'`)
       return
     }
 
@@ -138,6 +145,7 @@ ${changedExcludedPackages.join(', ')}. Skipping.`)
 
     if (USE_GITHUB_AUTO_MERGE) {
       await client.enableAutoMergePullRequest(pr.node_id, MERGE_METHOD)
+      core.setOutput(MERGE_STATUS_KEY, MERGE_STATUS.autoMerge)
       return logInfo('USE_GITHUB_AUTO_MERGE set, PR was marked as auto-merge')
     }
 
