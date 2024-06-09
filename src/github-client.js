@@ -1,10 +1,7 @@
 'use strict'
 
-const github = require('@actions/github')
-
-function githubClient(githubToken) {
-  const payload = github.context.payload
-  const octokit = github.getOctokit(githubToken)
+function githubClient(github, context) {
+  const payload = context.payload
 
   const repo = payload.repository
   const owner = repo.owner.login
@@ -12,7 +9,7 @@ function githubClient(githubToken) {
 
   return {
     async getPullRequest(pullRequestNumber) {
-      const { data: pullRequest } = await octokit.rest.pulls.get({
+      const { data: pullRequest } = await github.rest.pulls.get({
         owner,
         repo: repoName,
         pull_number: pullRequestNumber,
@@ -21,19 +18,19 @@ function githubClient(githubToken) {
     },
 
     async approvePullRequest(pullRequestNumber, approveComment) {
-      const { data } = await octokit.rest.pulls.createReview({
+      const { data } = await github.rest.pulls.createReview({
         owner,
         repo: repoName,
         pull_number: pullRequestNumber,
         event: 'APPROVE',
-        body: approveComment
+        body: approveComment,
       })
       // todo assert
       return data
     },
 
     async mergePullRequest(pullRequestNumber, mergeMethod) {
-      const { data } = await octokit.rest.pulls.merge({
+      const { data } = await github.rest.pulls.merge({
         owner,
         repo: repoName,
         pull_number: pullRequestNumber,
@@ -41,9 +38,54 @@ function githubClient(githubToken) {
       })
       // todo assert
       return data
+    },
+
+    async enableAutoMergePullRequest(pullRequestId, mergeMethod) {
+      const query = `
+mutation ($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+  enablePullRequestAutoMerge(
+    input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }
+  ) {
+    pullRequest {
+      autoMergeRequest {
+        enabledAt
+        enabledBy {
+          login
+        }
+      }
     }
   }
+}
+`
+      const { data } = await github.graphql(query, {
+        pullRequestId,
+        mergeMethod: mergeMethod.toUpperCase(),
+      })
+      return data
+    },
 
+    async getPullRequestDiff(pullRequestNumber) {
+      const { data: pullRequest } = await github.rest.pulls.get({
+        owner,
+        repo: repoName,
+        pull_number: pullRequestNumber,
+        mediaType: {
+          format: 'diff',
+        },
+      })
+      return pullRequest
+    },
+
+    async getPullRequestCommits(pullRequestNumber) {
+      const { data } = await github.rest.pulls.listCommits({
+        owner,
+        repo: repoName,
+        pull_number: pullRequestNumber,
+      })
+
+      return data
+    },
+  }
 }
 
 module.exports = { githubClient }

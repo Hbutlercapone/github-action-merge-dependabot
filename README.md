@@ -2,55 +2,15 @@
 
 This action automatically approves and merges dependabot PRs.
 
-
-## Inputs
-
-### `github-token`
-
-**Required** A GitHub token. See below for additional information.
-
-### `exclude`
-
-_Optional_ A comma separated value of packages that you don't want to auto-merge and would like to manually review to decide whether to upgrade or not.
-
-### `approve-only`
-
-_Optional_ If `true`, the PR is only approved but not merged. Defaults to `false`.
-
-### `merge-method`
-
-_Optional_ The merge method you would like to use (squash, merge, rebase). Default to `squash` merge.
-
-### `merge-comment`
-
-_Optional_ An arbitrary message that you'd like to comment on the PR after it gets auto-merged. This is only useful when you're recieving too much of noise in email and would like to filter mails for PRs that got automatically merged.
-
-### `target`
-
-_Optional_ A flag to only auto-merge updates based on Semantic Versioning. Defaults to `any`.
-
-Possible options are:
-
-`major, premajor, minor, preminor, patch, prepatch, prerelease, any`.
-
-For more details on how semantic version difference is calculated please see [semver](https://www.npmjs.com/package/semver) package.
-
-If you set a value other than `any`, PRs that are not semantic version compliant are skipped.
-An example of a non-semantic version is a commit hash when using git submodules.
-
-### `pr-number`
-
-_Optional_ A pull request number, only required if triggered from a workflow_dispatch event. Typically this would be triggered by a script running in a seperate CI provider. See [Trigger action from workflow_dispatch event](#trigger-action-from-workflow_dispatch-event)
-
 ## Usage
 
-Configure this action in your workflows providing the inputs described above.
+Configure this action in your workflows providing the inputs described below.
 Note that this action requires a GitHub token with additional permissions. You must use the [`permissions`](https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#permissions) tag to specify the required rules or configure your [GitHub account](https://github.blog/changelog/2021-04-20-github-actions-control-permissions-for-github_token/).
 
 The permissions required are:
 
-- [`pull-requests`](https://docs.github.com/en/rest/reference/permissions-required-for-github-apps#permission-on-pull-requests) permission: it is needed to approve PRs.
-- [`contents`](https://docs.github.com/en/rest/reference/permissions-required-for-github-apps#permission-on-contents) permission: it is necessary to merge the pull request. You don't need it if you set `approve-only: true`, see the example below.
+- [`pull-requests`](https://docs.github.com/en/rest/overview/permissions-required-for-github-apps?apiVersion=2022-11-28#pull-requests): it is needed to approve PRs.
+- [`contents`](https://docs.github.com/en/rest/overview/permissions-required-for-github-apps?apiVersion=2022-11-28#contents): it is necessary to merge the pull request. You don't need it if you set `approve-only: true`, see [Approving without merging](#approving-without-merging) example below.
 
 If some of the required permissions are missing, the action will fail with the error message:
 
@@ -58,11 +18,39 @@ If some of the required permissions are missing, the action will fail with the e
 Error: Resource not accessible by integration
 ```
 
+## Inputs
+
+| input                      | required | default             | description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+|----------------------------|----------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `github-token`             | No       | `${{github.token}}` | A GitHub token.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `exclude`                  | No       |                     | A comma or semicolon separated value of packages that you don't want to auto-merge and would like to manually review to decide whether to upgrade or not.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `approve-only`             | No       | `false`             | If `true`, the PR is only approved but not merged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `merge-method`             | No       | `squash`            | The merge method you would like to use (squash, merge, rebase).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `merge-comment`            | No       | `''`                | An arbitrary message that you'd like to comment on the PR after it gets auto-merged. This is only useful when you're receiving too much of noise in email and would like to filter mails for PRs that got automatically merged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `use-github-auto-merge`    | No       | `false`             | If `true`, the PR is marked as auto-merge and will be merged by GitHub when status checks are satisfied.<br /><br />_NOTE_: This feature only works when all of the following conditions are met.<br />- The repository enables auto-merge. <br />- The pull request base must have a branch protection rule. <br />- The pull request's status checks are not yet satisfied.<br /></br>Refer to [the official document](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/automatically-merging-a-pull-request) about GitHub auto-merge.                                                                                                                                                                       |
+| `target`                   | No       | `any`               | A flag to only auto-merge updates based on Semantic Versioning.<br />Possible options are: `major, premajor, minor, preminor, patch, prepatch, prerelease, any`.<br /><br />The value of this flag allows for updates for all the matching versions **and lower** with the respect for priority. This means, for example, if the `target` is set to `major` and the update is made to `minor` version the auto-merge will be triggered.<br /><br />For more details on how semantic version difference is calculated please see [semver](https://www.npmjs.com/package/semver) package.<br /><br />If you set a value other than `any`, PRs that are not semantic version compliant are skipped. An example of a non-semantic version is a commit hash when using git submodules. |
+| `pr-number`                | No       |                     | A pull request number, only required if triggered from a workflow_dispatch event. Typically this would be triggered by a script running in a separate CI provider. See [Trigger action from workflow_dispatch event](#trigger-action-from-workflow_dispatch-event) example.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `skip-commit-verification` | No       | `false`             | If `true`, then the action will not expect the commits to have a verification signature. It is required to set this to `true` in GitHub Enterprise Server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `skip-verification`        | No       | `false`             | If true, the action will not validate the user or the commit verification status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `event-name`        | No       | `pull_request`             | Allows customizing the `github.event_name` that is used to sanity check the build and make sure its part of a Pull Request. Default is `pull_request`. Allowed values: `pull_request`, `pull_request_target`.|
+
+## Output
+
+| outputs      | Description                                                                                                                                                                                                                                                              |
+|---------------|---------------|
+| merge_status | The result status of the merge. It can be one of the following: `approved`, `merged`, `merge_failed`, `skipped:commit_verification_failed`, `skipped:not_a_dependabot_pr`, `skipped:cannot_update_major`, `skipped:bump_higher_than_target`, `skipped:packaged_excluded` |
+
+## Examples
+
 ### Basic example
 
 ```yml
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   build:
@@ -79,9 +67,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: fastify/github-action-merge-dependabot@v3.0.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: fastify/github-action-merge-dependabot@v3
 ```
 
 ### Excluding packages
@@ -92,9 +78,8 @@ permissions:
   contents: write
 
 steps:
-  - uses: fastify/github-action-merge-dependabot@v3.0.0
+  - uses: fastify/github-action-merge-dependabot@v3
     with:
-      github-token: ${{ secrets.GITHUB_TOKEN }}
       exclude: 'react,fastify'
 ```
 
@@ -104,9 +89,8 @@ steps:
 permissions:
   pull-requests: write
 steps:
-  - uses: fastify/github-action-merge-dependabot@v3.0.0
+  - uses: fastify/github-action-merge-dependabot@v3
     with:
-      github-token: ${{ secrets.GITHUB_TOKEN }}
       approve-only: true
 ```
 
@@ -132,9 +116,8 @@ jobs:
       pull-requests: write
       contents: write
     steps:
-      - uses: fastify/github-action-merge-dependabot@v3.0.0
+      - uses: fastify/github-action-merge-dependabot@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           pr-number: ${{ github.event.inputs.pr-number }}
 ```
 
@@ -149,11 +132,27 @@ curl -X POST \
   -d '{"ref":"{ref}", "inputs":{ "pr-number": "{number}"}}'
 ```
 
+### Trigger action from a `pull_request_target` instead of `pull_request` event
+
+[trigger_doc]: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
+[security_blog]: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+
+The action by default verifies that the [trigger][trigger_doc] is a `pull_request` event - which is the most secure and safest way to run your builds. If necessary, you can use the `event-name` property to reconfigure this verification check to support `pull_request_target` events. Make sure that you understand the [security risks][security_blog] of this behavior first. Additionally, ensure that your `checkout` action is configured properly to check out and test the right branch:
+
+```yaml
+- name: Checkout
+  uses: actions/checkout@v3
+  with:
+    ref: ${{ github.event.pull_request.head.ref }}
+    repository: ${{ github.event.pull_request.head.repo.full_name }}
+```
+
 
 ## How to upgrade from `2.x` to new `3.x`
 
 - Update the action version.
 - Add the new `permissions` configuration into your workflow or, instead, you can set the permissions rules on [the repository](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#setting-the-permissions-of-the-github_token-for-your-repository) or on [the organization](https://docs.github.com/en/enterprise-server@3.3/admin/policies/enforcing-policies-for-your-enterprise/enforcing-policies-for-github-actions-in-your-enterprise#enforcing-a-policy-for-workflow-permissions-in-your-enterprise).
+- Uninstall the [dependabot-merge-action](https://github.com/apps/dependabot-merge-action) GitHub App from your repos/orgs.
 - If you have customized the `api-url` you can:
   - Remove the `api-url` option from your workflow.
   - Turn off the [`dependabot-merge-action-app`](https://github.com/fastify/dependabot-merge-action-app/) application.
@@ -177,14 +176,11 @@ jobs:
     steps:
 -     - uses: fastify/github-action-merge-dependabot@v2.1.1
 +     - uses: fastify/github-action-merge-dependabot@v3
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Notes
 
-- A GitHub token is automatically provided by Github Actions, which can be accessed using `secrets.GITHUB_TOKEN` and supplied to the action as an input `github-token`.
-- Only the [GitHub native Dependabot integration](https://docs.github.com/en/github/administering-a-repository/keeping-your-dependencies-updated-automatically) is supported, the old [Dependabot Preview app](https://github.com/marketplace/dependabot-preview) isn't.
+- A GitHub token is automatically provided by Github Actions, which can be accessed using `github.token`. If you want to provide a token that's not the default one you can used the `github-token` input.
 - Make sure to use `needs: <jobs>` to delay the auto-merging until CI checks (test/build) are passed.
 - If you want to use GitHub's [auto-merge](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/automatically-merging-a-pull-request) feature but still use this action to approve Pull Requests without merging, use `approve-only: true`.
 
